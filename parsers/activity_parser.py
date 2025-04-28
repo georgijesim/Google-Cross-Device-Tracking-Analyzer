@@ -1,0 +1,32 @@
+import pandas as pd
+
+def parse_activity_csv(file_path):
+    try:
+        # Read CSV with flexible column handling
+        df = pd.read_csv(file_path, sep=',', parse_dates=['Activity Timestamp'], 
+                         on_bad_lines='skip', encoding='utf-8')
+        
+        # Extract device type from User Agent String
+        def extract_device_type(ua):
+            if pd.isna(ua):
+                return 'Unknown'
+            if 'Device Type :' in ua:
+                parts = ua.split('Device Type :')[1].split('.')[0].strip()
+                return parts
+            return 'Unknown'
+        
+        # Ensure required columns, fill missing with 'N/A'
+        df['Timestamp'] = df['Activity Timestamp'].fillna(pd.NaT)
+        df['IP Address'] = df.get('IP Address', 'N/A')
+        df['Device Type'] = df['User Agent String'].apply(extract_device_type)
+        df['Location'] = df.get('Activity Country', 'N/A').fillna('N/A')
+        df['App Used'] = df.get('Product Name', 'N/A')
+        
+        # Combine "Unknown" and "UNKNOWN" for consistency
+        df['Device Type'] = df['Device Type'].replace('UNKNOWN', 'Unknown')
+        
+        # Select relevant columns
+        required_columns = ['Timestamp', 'IP Address', 'Device Type', 'Location', 'App Used']
+        return df[required_columns].dropna(subset=['Timestamp'])
+    except Exception as e:
+        raise ValueError(f"Error reading activity CSV: {str(e)}")
