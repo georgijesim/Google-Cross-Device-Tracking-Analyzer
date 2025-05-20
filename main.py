@@ -249,10 +249,9 @@ class TrackingAnalyzerApp:
         
         # Visualizations section (hidden initially)
         self.viz_frame = tk.Frame(self.scrollable_frame, bg=FRAME_COLOR, bd=2, relief="ridge")
-        # Calculate 10% of initial window width (1200 pixels) = 120 pixels
-        padding_x = 120  # Alternatively, use self.root.winfo_width() * 0.1 for dynamic sizing
+        padding_x = 120
         self.viz_frame.pack(fill="x", padx=padding_x, pady=(20,40))
-        self.viz_frame.pack_forget()  # Hide initially
+        self.viz_frame.pack_forget()
         
         tk.Label(
             self.viz_frame,
@@ -281,7 +280,7 @@ class TrackingAnalyzerApp:
         timeframe_menu = ttk.Combobox(
             self.viz_frame,
             textvariable=self.timeframe_var,
-            values=["Daily", "Weekly", "Monthly", "5-day", "10-day"],
+            values=["Daily", "Weekly", "Monthly"],
             state="readonly"
         )
         timeframe_menu.pack(pady=5)
@@ -308,12 +307,14 @@ class TrackingAnalyzerApp:
         self.parser = parse_activity_csv if csv_type == "Activity Logs" else parse_device_csv
         
         try:
-            self.df = self.parser(self.selected_file)
+            self.df, breakdown = self.parser(self.selected_file)
             self.update_table()
-            summary = self.analyze_tracking_data()
-            self.update_summary(summary)
+            self.update_summary(breakdown)
             self.update_output("Data parsed successfully.")
-            self.show_visualizations()
+            if csv_type == "Activity Logs":
+                self.show_visualizations()
+            else:
+                self.viz_frame.pack_forget()  # Hide visualizations for device logs
         except Exception as e:
             self.update_output(f"Error: {str(e)}")
             
@@ -323,33 +324,6 @@ class TrackingAnalyzerApp:
         for _, row in self.df.iterrows():
             self.tree.insert("", "end", values=tuple(row))
             
-    def analyze_tracking_data(self):
-        unique_devices = self.df['Device Type'].nunique()
-        unique_ips = self.df['IP Address'].nunique()
-        login_count = len(self.df)
-        earliest = self.df['Timestamp'].min()
-        latest = self.df['Timestamp'].max()
-        days_tracked = (latest - earliest).days if pd.notna(earliest) and pd.notna(latest) else 0
-        apps_used = self.df['App Used'].value_counts().to_dict()
-        
-        summary = (
-            "Cross-Device Tracking Analysis\n\n"
-            "• Unique Devices Tracked: {}\n"
-            "• Unique IP Addresses: {}\n"
-            "• Total Activities Recorded: {}\n"
-            "• Tracking Period: {} days (from {} to {})\n"
-            "• Apps Used:\n{}".format(
-                unique_devices,
-                unique_ips,
-                login_count,
-                days_tracked,
-                earliest,
-                latest,
-                "\n".join([f"  - {app}: {count}" for app, count in apps_used.items()])
-            )
-        )
-        return summary
-    
     def update_output(self, text):
         self.update_text(self.output_text, text)
         
@@ -420,7 +394,7 @@ class TrackingAnalyzerApp:
         scroll_frame = tk.Frame(self.viz_frame, bg=FRAME_COLOR)
         scroll_frame.pack(fill="x", pady=10)
         
-        canvas = tk.Canvas(scroll_frame, bg=FRAME_COLOR, height=600) # Defines the space where the visuzalizations go
+        canvas = tk.Canvas(scroll_frame, bg=FRAME_COLOR, height=600)
         scrollbar = ttk.Scrollbar(scroll_frame, orient="horizontal", command=canvas.xview)
         scrollable_frame = tk.Frame(canvas, bg=FRAME_COLOR)
         

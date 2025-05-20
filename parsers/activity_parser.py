@@ -25,8 +25,34 @@ def parse_activity_csv(file_path):
         # Combine "Unknown" and "UNKNOWN" for consistency
         df['Device Type'] = df['Device Type'].replace('UNKNOWN', 'Unknown')
         
+        # Generate breakdown
+        unique_devices = df['Device Type'].nunique()
+        unique_ips = df['IP Address'].nunique()
+        total_activities = len(df)
+        earliest = df['Timestamp'].min()
+        latest = df['Timestamp'].max()
+        days_tracked = (latest - earliest).days if pd.notna(earliest) and pd.notna(latest) else 0
+        apps_used = df['App Used'].value_counts().to_dict()
+        
+        breakdown = (
+            "Activity Tracking Analysis\n\n"
+            "• Unique Devices Tracked: {}\n"
+            "• Unique IP Addresses: {}\n"
+            "• Total Activities Recorded: {}\n"
+            "• Tracking Period: {} days (from {} to {})\n"
+            "• Apps Used:\n{}".format(
+                unique_devices,
+                unique_ips,
+                total_activities,
+                days_tracked,
+                earliest,
+                latest,
+                "\n".join([f"  - {app}: {count}" for app, count in apps_used.items()])
+            )
+        )
+        
         # Select relevant columns
         required_columns = ['Timestamp', 'IP Address', 'Device Type', 'Location', 'App Used']
-        return df[required_columns].dropna(subset=['Timestamp'])
+        return df[required_columns].dropna(subset=['Timestamp']), breakdown
     except Exception as e:
         raise ValueError(f"Error reading activity CSV: {str(e)}")

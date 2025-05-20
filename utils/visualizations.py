@@ -3,6 +3,14 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
+import warnings
+
+# Suppress timezone conversion warnings
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message="Converting to PeriodArray/Index representation will drop timezone information."
+)
 
 def create_bar_chart(df):
     """Create a bar chart of activities per app with count labels."""
